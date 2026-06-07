@@ -74,7 +74,13 @@
             font-size: 14px;
         }
 
-        /* 表单 */
+        /* 表单区域 */
+        .search-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
         .form-row {
             display: flex;
             gap: 16px;
@@ -154,6 +160,38 @@
             background: #e8eaed;
         }
 
+        /* 搜索模式切换 */
+        .search-mode {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-mode-toggle {
+            display: flex;
+            background: #f1f3f4;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .search-mode-btn {
+            padding: 6px 16px;
+            border: none;
+            background: transparent;
+            color: #5f6368;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .search-mode-btn.active {
+            background: white;
+            color: #1a73e8;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         /* 状态消息 */
         .status-message {
             margin-top: 12px;
@@ -205,6 +243,48 @@
         .stat-label {
             color: #5f6368;
             font-size: 13px;
+        }
+
+        /* 搜索结果 */
+        .search-results {
+            margin-top: 16px;
+            border: 1px solid #e8eaed;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .search-results.show {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8eaed;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+
+        .search-result-name {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 4px;
+        }
+
+        .search-result-group {
+            font-size: 12px;
+            color: #5f6368;
         }
 
         /* 结果区域 */
@@ -275,80 +355,67 @@
             color: #ea4335;
         }
 
-        /* 节点样式 */
+        /* 抽屉式节点 */
         .node-list {
             display: flex;
             flex-direction: column;
-            gap: 0;
+            gap: 8px;
         }
 
-        .node-item {
-            position: relative;
-            padding: 12px 16px;
-            margin-bottom: 0;
+        .drawer-item {
             background: white;
             border-radius: 8px;
             border: 1px solid #dadce0;
+            overflow: hidden;
             transition: all 0.2s;
         }
 
-        .node-item:hover {
+        .drawer-item:hover {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transform: translateX(4px);
         }
 
-        .node-item.level-1 {
-            border-left: 4px solid #ea4335;
-            margin-left: 0;
-        }
-
-        .node-item.level-2 {
-            border-left: 4px solid #fbbc04;
-            margin-left: 32px;
-        }
-
-        .node-item.level-3 {
-            border-left: 4px solid #34a853;
-            margin-left: 64px;
-        }
-
-        .node-item.level-4 {
-            border-left: 4px solid #4285f4;
-            margin-left: 96px;
-        }
-
-        /* 连接线 */
-        .node-item.level-2::before,
-        .node-item.level-3::before,
-        .node-item.level-4::before {
-            content: '';
-            position: absolute;
-            left: -20px;
-            top: -12px;
-            width: 2px;
-            height: 28px;
-            background: #dadce0;
-        }
-
-        .node-item.level-2::before {
-            left: -20px;
-        }
-
-        .node-item.level-3::before {
-            left: -52px;
-            height: 28px;
-        }
-
-        .node-item.level-4::before {
-            left: -84px;
-            height: 28px;
-        }
-
-        .node-header {
+        .drawer-header {
             display: flex;
             align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
             gap: 10px;
-            margin-bottom: 6px;
+        }
+
+        .drawer-header.level-1 {
+            border-left: 4px solid #ea4335;
+        }
+
+        .drawer-header.level-2 {
+            border-left: 4px solid #fbbc04;
+        }
+
+        .drawer-header.level-3 {
+            border-left: 4px solid #34a853;
+        }
+
+        .drawer-header.level-4 {
+            border-left: 4px solid #4285f4;
+        }
+
+        .drawer-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            font-size: 12px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .drawer-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .drawer-toggle.empty {
+            visibility: hidden;
         }
 
         .node-level {
@@ -357,6 +424,7 @@
             padding: 2px 8px;
             border-radius: 4px;
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .level-1 .node-level { background: #fce8e8; color: #d93025; }
@@ -369,23 +437,69 @@
             font-size: 13px;
             font-weight: 500;
             color: #202124;
+            flex: 1;
             word-break: break-all;
         }
 
-        .node-parent {
-            font-size: 12px;
-            color: #5f6368;
-            padding-left: 46px;
+        .node-count {
+            font-size: 11px;
+            color: #9aa0a6;
+            background: #f1f3f4;
+            padding: 2px 8px;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+
+        .drawer-content {
+            display: none;
+            padding: 0 16px 12px 40px;
+            border-top: 1px solid #e8eaed;
+            background: #fafafa;
+        }
+
+        .drawer-content.expanded {
+            display: block;
+        }
+
+        .child-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e8eaed;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .node-parent::before {
-            content: '↳';
+        .child-item:hover {
+            background: #e8f0fe;
+            border-color: #1a73e8;
+        }
+
+        .child-item .node-name {
+            font-size: 12px;
+        }
+
+        .child-parent {
+            font-size: 11px;
             color: #9aa0a6;
+            padding-left: 28px;
         }
 
+        .child-node {
+            margin-left: 16px;
+            border-left: 2px solid #e8eaed;
+            padding-left: 8px;
+        }
+
+        .child-node:first-child {
+            margin-top: 8px;
+        }
+
+        /* 空状态 */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -453,6 +567,13 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* 搜索高亮 */
+        .highlight {
+            background: #fef3e8;
+            color: #b06000;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -469,21 +590,42 @@
                 <span class="icon" style="background: #e8f0fe; color: #1a73e8;">🔍</span>
                 查询作业血缘关系
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="jobName">作业名称</label>
-                    <input type="text" id="jobName" placeholder="请输入作业名称，如：DCM_ISP_ISPS_AG_AGREEMENT_N_SF_F_000">
+            <div class="search-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="jobName">作业名称</label>
+                        <input type="text" id="jobName" placeholder="请输入作业名称或作业组">
+                    </div>
+                    <div class="form-group small">
+                        <label for="maxLevel">查询层级</label>
+                        <input type="number" id="maxLevel" value="3" min="1" max="10">
+                    </div>
+                    <button onclick="queryLineage()" id="queryBtn" class="btn btn-primary" disabled>
+                        查询血缘关系
+                    </button>
+                    <button onclick="refreshData()" id="refreshBtn" class="btn btn-secondary">
+                        刷新数据
+                    </button>
                 </div>
-                <div class="form-group small">
-                    <label for="maxLevel">查询层级</label>
-                    <input type="number" id="maxLevel" value="4" min="1" max="10">
+
+                <!-- 搜索模式 -->
+                <div class="search-mode">
+                    <span style="font-size: 13px; color: #5f6368; font-weight: 500;">搜索模式：</span>
+                    <div class="search-mode-toggle">
+                        <button class="search-mode-btn active" data-mode="fuzzy" onclick="setSearchMode('fuzzy')">
+                            模糊搜索
+                        </button>
+                        <button class="search-mode-btn" data-mode="exact" onclick="setSearchMode('exact')">
+                            精准搜索
+                        </button>
+                    </div>
+                    <button onclick="searchJobs()" id="searchBtn" class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;">
+                        🔍 搜索作业
+                    </button>
                 </div>
-                <button onclick="queryLineage()" id="queryBtn" class="btn btn-primary" disabled>
-                    查询血缘关系
-                </button>
-                <button onclick="refreshData()" id="refreshBtn" class="btn btn-secondary">
-                    刷新数据
-                </button>
+
+                <!-- 搜索结果 -->
+                <div id="searchResults" class="search-results"></div>
             </div>
             <div id="queryStatus" class="status-message"></div>
         </div>
@@ -548,7 +690,7 @@
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #fbbc04;"></div>
-                    <span>2级依赖（间接）</span>
+                    <span>2级依赖</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #34a853;"></div>
@@ -558,12 +700,105 @@
                     <div class="legend-color" style="background: #4285f4;"></div>
                     <span>4级及以上</span>
                 </div>
+                <div class="legend-item" style="margin-left: auto;">
+                    <span style="color: #9aa0a6;">💡 点击节点可展开查看下一级依赖</span>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const API_BASE = '/api';
+        let searchMode = 'fuzzy'; // fuzzy 或 exact
+        let allJobs = []; // 缓存所有作业用于搜索
+
+        // 设置搜索模式
+        function setSearchMode(mode) {
+            searchMode = mode;
+            document.querySelectorAll('.search-mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            // 如果有搜索结果，重新搜索
+            const input = document.getElementById('jobName').value.trim();
+            if (input) searchJobs();
+        }
+
+        // 搜索作业
+        async function searchJobs() {
+            const keyword = document.getElementById('jobName').value.trim();
+            if (!keyword) {
+                document.getElementById('searchResults').classList.remove('show');
+                return;
+            }
+
+            const searchBtn = document.getElementById('searchBtn');
+            searchBtn.innerHTML = '<span class="spinner"></span> 搜索中...';
+            searchBtn.disabled = true;
+
+            try {
+                // 加载所有作业数据（如果还没有）
+                if (allJobs.length === 0) {
+                    const response = await fetch(`${API_BASE}/stats`);
+                    // 实际上我们需要一个专门的搜索API
+                    // 这里先用模糊匹配的方式
+                }
+
+                // 使用已有的索引数据进行搜索
+                const searchResults = await fuzzySearchJobs(keyword, searchMode);
+
+                const resultsContainer = document.getElementById('searchResults');
+                if (searchResults.length > 0) {
+                    resultsContainer.innerHTML = searchResults.map(job => `
+                        <div class="search-result-item" onclick="selectJob('${escapeHtml(job.job)}')">
+                            <div class="search-result-name">${highlightText(job.job, keyword)}</div>
+                            <div class="search-result-group">作业组：${escapeHtml(job.group || '未知')}</div>
+                        </div>
+                    `).join('');
+                    resultsContainer.classList.add('show');
+                } else {
+                    resultsContainer.innerHTML = '<div class="empty-state"><div>未找到匹配的作业</div></div>';
+                    resultsContainer.classList.add('show');
+                }
+            } catch (error) {
+                console.error('搜索失败:', error);
+            } finally {
+                searchBtn.innerHTML = '🔍 搜索作业';
+                searchBtn.disabled = false;
+            }
+        }
+
+        // 模糊搜索作业（需要后端支持）
+        async function fuzzySearchJobs(keyword, mode) {
+            try {
+                const response = await fetch(`${API_BASE}/search?keyword=${encodeURIComponent(keyword)}&mode=${mode}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    return result.jobs || [];
+                }
+            } catch (e) {
+                console.error('搜索API不可用');
+            }
+            return [];
+        }
+
+        // 高亮文本
+        function highlightText(text, keyword) {
+            if (!keyword) return escapeHtml(text);
+            const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
+            return escapeHtml(text).replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // 转义正则特殊字符
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // 选择作业
+        function selectJob(jobName) {
+            document.getElementById('jobName').value = jobName;
+            document.getElementById('searchResults').classList.remove('show');
+            queryLineage();
+        }
 
         // 刷新数据库数据
         async function refreshData() {
@@ -581,6 +816,8 @@
                     showStatus('queryStatus', '✓ ' + result.message, 'success');
                     showStats(result.stats);
                     document.getElementById('queryBtn').disabled = false;
+                    // 刷新后重新获取作业列表
+                    loadAllJobs();
                 } else {
                     showStatus('queryStatus', '✗ ' + result.message, 'error');
                 }
@@ -589,6 +826,19 @@
             } finally {
                 refreshBtn.innerHTML = originalText;
                 refreshBtn.disabled = false;
+            }
+        }
+
+        // 加载所有作业（用于前端搜索）
+        async function loadAllJobs() {
+            try {
+                const response = await fetch(`${API_BASE}/all-jobs`);
+                if (response.ok) {
+                    const result = await response.json();
+                    allJobs = result.jobs || [];
+                }
+            } catch (e) {
+                console.log('获取作业列表失败');
             }
         }
 
@@ -641,48 +891,106 @@
             document.getElementById('statsSection').classList.remove('hidden');
         }
 
-        // 渲染节点列表
-        function renderNodeList(jobs, containerId, direction) {
+        // 切换抽屉展开/收起
+        function toggleDrawer(element) {
+            const content = element.nextElementSibling;
+            const toggle = element.querySelector('.drawer-toggle');
+
+            if (content && content.classList.contains('drawer-content')) {
+                content.classList.toggle('expanded');
+                toggle.classList.toggle('expanded');
+            }
+        }
+
+        // 渲染抽屉列表（只显示一级，二级/三级嵌套在抽屉里）
+        function renderDrawerList(jobs, containerId) {
             const container = document.getElementById(containerId);
 
             if (!jobs || jobs.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">${direction === 'upstream' ? '⬆️' : '⬇️'}</div>
-                        <div>无${direction === 'upstream' ? '上游依赖' : '下游影响'}</div>
+                        <div class="empty-state-icon">📭</div>
+                        <div>暂无依赖</div>
                     </div>
                 `;
                 return;
             }
 
-            // 按层级分组
-            const grouped = {};
-            jobs.forEach(job => {
-                if (!grouped[job.level]) grouped[job.level] = [];
-                grouped[job.level].push(job);
-            });
+            // 只渲染一级作业
+            const level1Jobs = jobs.filter(job => job.level === 1);
 
             let html = '';
-            Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
-                const levelJobs = grouped[level];
-                const levelLabel = level === '1' ? '一级' : level === '2' ? '二级' : `第${level}级`;
+            level1Jobs.forEach(job => {
+                // 检查该作业是否有下一级依赖
+                const hasChildren = jobs.some(j => j.parent === job.job && j.level === 2);
 
-                html += `<div style="margin-bottom: 8px; font-size: 12px; color: #9aa0a6; padding: 4px 0; font-weight: 600;">${levelLabel}依赖 (${levelJobs.length}个)</div>`;
-
-                levelJobs.forEach(job => {
-                    html += `
-                        <div class="node-item level-${Math.min(job.level, 4)}">
-                            <div class="node-header">
-                                <span class="node-level">${levelLabel}</span>
-                                <span class="node-name">${escapeHtml(job.job)}</span>
-                            </div>
-                            <div class="node-parent">直接依赖：${escapeHtml(job.parent)}</div>
+                html += `
+                    <div class="drawer-item">
+                        <div class="drawer-header level-1" onclick="toggleDrawer(this)">
+                            <span class="drawer-toggle ${!hasChildren ? 'empty' : ''}">
+                                ${hasChildren ? '▶' : ''}
+                            </span>
+                            <span class="node-level">一级</span>
+                            <span class="node-name">${escapeHtml(job.job)}</span>
+                            ${hasChildren ? `<span class="node-count">${jobs.filter(j => j.parent === job.job && j.level === 2).length} 个下游</span>` : ''}
                         </div>
-                    `;
-                });
+                        ${hasChildren ? `
+                            <div class="drawer-content">
+                                ${renderChildren(jobs, job.job, 1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
             });
 
             container.innerHTML = html;
+        }
+
+        // 渲染子节点（递归）
+        function renderChildren(allJobs, parentJob, parentLevel) {
+            const nextLevel = parentLevel + 1;
+            const children = allJobs.filter(j => j.parent === parentJob && j.level === nextLevel);
+
+            if (children.length === 0) {
+                return '';
+            }
+
+            const levelLabel = nextLevel === 2 ? '二级' : nextLevel === 3 ? '三级' : `第${nextLevel}级`;
+
+            return children.map(child => {
+                const hasGrandChildren = allJobs.some(j => j.parent === child.job && j.level === nextLevel + 1);
+                return `
+                    <div class="child-node">
+                        <div class="child-item" onclick="toggleChildDrawer(this)">
+                            <span class="drawer-toggle ${!hasGrandChildren ? 'empty' : ''}">
+                                ${hasGrandChildren ? '▶' : ''}
+                            </span>
+                            <span class="node-level" style="font-size: 10px; padding: 1px 6px;">
+                                ${levelLabel}
+                            </span>
+                            <span class="node-name">${escapeHtml(child.job)}</span>
+                            ${hasGrandChildren ? `<span class="node-count">${allJobs.filter(j => j.parent === child.job && j.level === nextLevel + 1).length}</span>` : ''}
+                        </div>
+                        ${hasGrandChildren ? `
+                            <div class="drawer-content">
+                                ${renderChildren(allJobs, child.job, nextLevel)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 切换子抽屉展开/收起
+        function toggleChildDrawer(element) {
+            const parent = element.closest('.child-node, .drawer-item');
+            const content = parent.querySelector('.drawer-content');
+            const toggle = element.querySelector('.drawer-toggle');
+
+            if (content) {
+                content.classList.toggle('expanded');
+                toggle.classList.toggle('expanded');
+            }
         }
 
         // 显示查询结果
@@ -693,12 +1001,13 @@
             document.getElementById('currentJob').textContent = data.inputJob;
             document.getElementById('rootNode').textContent = data.inputJob;
 
-            renderNodeList(data.upstream, 'upstreamList', 'upstream');
-            renderNodeList(data.downstream, 'downstreamList', 'downstream');
+            renderDrawerList(data.upstream, 'upstreamList');
+            renderDrawerList(data.downstream, 'downstreamList');
         }
 
         // HTML转义
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -718,6 +1027,9 @@
                     if (statsResult.success) {
                         showStats(statsResult.stats);
                     }
+
+                    // 加载作业列表
+                    loadAllJobs();
                 } else {
                     showStatus('queryStatus', '数据尚未加载，请点击刷新按钮', 'error');
                 }
@@ -726,9 +1038,28 @@
             }
         };
 
-        // 回车键查询
+        // 回车键搜索/查询
         document.getElementById('jobName').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') queryLineage();
+            if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                    searchJobs();
+                } else {
+                    queryLineage();
+                }
+            }
+        });
+
+        // 输入时防抖搜索
+        let searchTimeout;
+        document.getElementById('jobName').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (this.value.trim().length >= 2) {
+                    searchJobs();
+                } else {
+                    document.getElementById('searchResults').classList.remove('show');
+                }
+            }, 300);
         });
     </script>
 </body>

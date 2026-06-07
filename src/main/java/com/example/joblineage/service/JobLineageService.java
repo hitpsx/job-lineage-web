@@ -192,7 +192,7 @@ public class JobLineageService {
      */
     public Map<String, Object> getDataStats() {
         Map<String, Object> stats = new HashMap<>();
-        
+
         try {
             List<String> validValues = Arrays.asList("有效", "是", "true", "1");
             long totalJobs = jobLineageRepository.countByIsValidIn(validValues);
@@ -200,10 +200,78 @@ public class JobLineageService {
         } catch (Exception e) {
             stats.put("totalJobs", 0);
         }
-        
+
         stats.put("downIndexSize", downIndex.size());
         stats.put("upIndexSize", upIndex.size());
         stats.put("dataLoaded", dataLoaded);
         return stats;
+    }
+
+    /**
+     * 获取所有作业列表
+     */
+    public List<Map<String, String>> getAllJobs() {
+        List<Map<String, String>> jobs = new ArrayList<>();
+        Set<String> uniqueJobs = new HashSet<>();
+
+        // 从upIndex中提取所有唯一的作业
+        for (Map.Entry<String, List<JobNode>> entry : upIndex.entrySet()) {
+            for (JobNode node : entry.getValue()) {
+                String job = node.getJob();
+                if (job != null && !uniqueJobs.contains(job)) {
+                    uniqueJobs.add(job);
+                    Map<String, String> jobMap = new HashMap<>();
+                    jobMap.put("job", job);
+                    // 从作业名中提取作业组（格式：group_name）
+                    int underscoreIndex = job.indexOf('_');
+                    if (underscoreIndex > 0) {
+                        jobMap.put("group", job.substring(0, underscoreIndex));
+                        jobMap.put("name", job.substring(underscoreIndex + 1));
+                    } else {
+                        jobMap.put("group", "");
+                        jobMap.put("name", job);
+                    }
+                    jobs.add(jobMap);
+                }
+            }
+        }
+
+        // 按作业名排序
+        jobs.sort((a, b) -> a.get("job").compareTo(b.get("job")));
+        return jobs;
+    }
+
+    /**
+     * 搜索作业（支持模糊和精准搜索）
+     */
+    public List<Map<String, String>> searchJobs(String keyword, boolean exactMatch) {
+        List<Map<String, String>> allJobs = getAllJobs();
+        List<Map<String, String>> results = new ArrayList<>();
+
+        keyword = keyword.toLowerCase();
+
+        for (Map<String, String> job : allJobs) {
+            String jobName = job.get("name");
+            String jobGroup = job.get("group");
+            boolean match = false;
+
+            if (exactMatch) {
+                // 精准匹配：作业名或作业组完全相等
+                match = jobName.equalsIgnoreCase(keyword) ||
+                        jobGroup.equalsIgnoreCase(keyword) ||
+                        job.get("job").equalsIgnoreCase(keyword);
+            } else {
+                // 模糊匹配：包含关键词
+                match = jobName.toLowerCase().contains(keyword) ||
+                        jobGroup.toLowerCase().contains(keyword) ||
+                        job.get("job").toLowerCase().contains(keyword);
+            }
+
+            if (match) {
+                results.add(job);
+            }
+        }
+
+        return results;
     }
 }

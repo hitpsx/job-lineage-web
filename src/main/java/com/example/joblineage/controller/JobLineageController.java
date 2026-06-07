@@ -98,4 +98,42 @@ public class JobLineageController {
         response.put("dataLoaded", jobLineageService.isDataLoaded());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 获取所有作业列表
+     */
+    @GetMapping("/all-jobs")
+    public ResponseEntity<Map<String, Object>> getAllJobs() {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            response.put("success", true);
+            response.put("jobs", jobLineageService.getAllJobs());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("获取作业列表失败", e);
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * 搜索作业（支持模糊和精准搜索）
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> searchJobs(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "fuzzy") String mode) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            response.put("success", true);
+            response.put("jobs", jobLineageService.searchJobs(keyword, "exact".equals(mode)));
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("搜索失败", e);
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
 }
