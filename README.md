@@ -21,11 +21,9 @@
 
 ## 数据库配置
 
-### 数据库信息
-- 数据库：MySQL 8.0
-- 数据库名：psx
-- 用户名：root
-- 密码：root
+### 数据库要求
+- 数据库：MySQL 8.0+
+- 数据库名：`psx`（可配置）
 
 ### 数据表结构
 
@@ -56,6 +54,57 @@ CREATE TABLE job_lineage (
 | dep_name | 依赖的作业名 | DCM_ODS |
 | is_valid | 数据有效性标识 | 有效/是 |
 
+### 安全配置（重要）
+
+**⚠️ 请勿在配置文件中明文存储数据库密码！**
+
+推荐通过以下方式配置数据库连接：
+
+#### 方式一：环境变量（推荐）
+
+在启动前设置环境变量：
+
+```bash
+# Linux/Mac
+export DB_URL=jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai
+export DB_USERNAME=your_username
+export DB_PASSWORD=your_password
+
+# Windows (PowerShell)
+$env:DB_URL="jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai"
+$env:DB_USERNAME="your_username"
+$env:DB_PASSWORD="your_password"
+```
+
+#### 方式二：外部配置文件
+
+创建 `application-local.yml` 文件（添加到 .gitignore）：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai
+    username: your_username
+    password: your_password
+```
+
+#### 方式三：命令行参数
+
+```bash
+java -jar target/job-lineage-web-1.0.0.jar \
+  --spring.datasource.url=jdbc:mysql://localhost:3306/psx \
+  --spring.datasource.username=your_username \
+  --spring.datasource.password=your_password
+```
+
+### 安全建议
+
+1. **生产环境**：使用数据库专用账号，最小权限原则
+2. **密码管理**：使用密钥管理服务（如 Vault）或环境变量
+3. **网络安全**：限制数据库端口只允许内网访问
+4. **加密传输**：生产环境启用 SSL 连接（`useSSL=true`）
+5. **定期轮换**：定期更换数据库密码
+
 ## 快速开始
 
 ### 1. 准备数据库
@@ -66,7 +115,23 @@ CREATE TABLE job_lineage (
 CREATE DATABASE IF NOT EXISTS psx;
 ```
 
-### 2. 导入数据
+### 2. 配置数据库连接
+
+**推荐使用环境变量配置数据库连接（避免明文密码）：**
+
+```bash
+# Linux/Mac
+export DB_URL=jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai
+export DB_USERNAME=your_username
+export DB_PASSWORD=your_password
+
+# Windows (PowerShell)
+$env:DB_URL="jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai"
+$env:DB_USERNAME="your_username"
+$env:DB_PASSWORD="your_password"
+```
+
+### 3. 导入数据
 
 向 `job_lineage` 表中插入作业血缘关系数据：
 
@@ -79,7 +144,7 @@ INSERT INTO job_lineage (job_group, job_name, dep_group, dep_name, is_valid) VAL
 ('GROUP_B', 'JOB_2', 'GROUP_D', 'JOB_4', '有效');
 ```
 
-### 3. 编译运行
+### 4. 编译运行
 
 ```bash
 # 编译项目
@@ -92,7 +157,9 @@ java -jar target/job-lineage-web-1.0.0.jar
 mvn spring-boot:run
 ```
 
-### 4. 访问系统
+**注意**：首次启动时，如果没有配置环境变量，系统会使用默认配置（username: root, password: root）。生产环境请务必通过环境变量配置数据库密码！
+
+### 5. 访问系统
 
 打开浏览器访问：http://localhost:8080
 

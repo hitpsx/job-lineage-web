@@ -5,9 +5,9 @@ spring:
   application:
     name: job-lineage-web
   datasource:
-    url: jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=UTC&characterEncoding=utf8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
