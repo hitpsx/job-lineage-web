@@ -1,14 +1,16 @@
 # 作业血缘关系查询系统
 
-基于Spring Boot的作业血缘关系查询系统，从MySQL数据库读取数据，提供可视化界面进行作业依赖关系查询。
+基于 Spring Boot 的作业血缘关系查询系统，从 MySQL 数据库读取数据，提供可视化界面进行作业依赖关系查询，支持按目标应用过滤和 Excel 导出。
 
 ## 功能特性
 
-- 从MySQL数据库自动加载作业血缘数据
+- 从 MySQL 数据库自动加载作业血缘数据
 - 作业血缘关系查询（上游依赖和下游影响）
-- 可视化Web界面
+- **按目标应用过滤**：从输入作业出发，只展示最终能到达目标应用的完整链路
+- **Excel 导出**：支持将血缘查询结果和目标应用过滤结果导出为 Excel
+- 可视化 Web 界面（抽屉式多级链路展示）
+- 支持模糊/精准搜索作业
 - 支持多层级查询
-- 显示每个作业的直接依赖关系
 - 数据刷新功能
 
 ## 技术栈
@@ -16,14 +18,15 @@
 - Spring Boot 2.7.18
 - Spring Data JPA
 - MySQL 8.0
+- Apache POI（Excel 导出）
 - Lombok
-- 纯前端HTML/CSS/JavaScript（无需额外前端框架）
+- 纯前端 HTML/CSS/JavaScript（无需额外前端框架）
 
 ## 数据库配置
 
 ### 数据库要求
+
 - 数据库：MySQL 8.0+
-- 数据库名：`psx`（可配置）
 
 ### 数据表结构
 
@@ -46,17 +49,23 @@ CREATE TABLE job_lineage (
 
 ### 数据格式说明
 
-| 字段名 | 说明 | 示例 |
-|--------|------|------|
-| job_group | 作业所属组 | GROUP_A |
-| job_name | 作业名称 | DCM_ISP |
-| dep_group | 依赖的作业组 | GROUP_B |
-| dep_name | 依赖的作业名 | DCM_ODS |
-| is_valid | 数据有效性标识 | 有效/是 |
+| 字段名    | 说明           | 示例      |
+|-----------|----------------|-----------|
+| job_group | 作业所属组     | GROUP_A |
+| job_name  | 作业名称       | DCM_ISP   |
+| dep_group | 依赖的作业组   | GROUP_B   |
+| dep_name  | 依赖的作业名   | DCM_ODS   |
+| is_valid  | 数据有效性标识 | 有效/是   |
+
+### 命名规则
+
+作业组名称格式：`应用名_作业组名`，以下划线 `_` 分隔，第一个字段为应用名。
+
+例如：`C_Y` 表示应用 `C` 下的作业组 `Y`。
 
 ### 安全配置（重要）
 
-**⚠️ 请勿在配置文件中明文存储数据库密码！**
+**请勿在配置文件中明文存储数据库密码！**
 
 推荐通过以下方式配置数据库连接：
 
@@ -66,12 +75,12 @@ CREATE TABLE job_lineage (
 
 ```bash
 # Linux/Mac
-export DB_URL=jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai
+export DB_URL=jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=Asia/Shanghai
 export DB_USERNAME=your_username
 export DB_PASSWORD=your_password
 
 # Windows (PowerShell)
-$env:DB_URL="jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai"
+$env:DB_URL="jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=Asia/Shanghai"
 $env:DB_USERNAME="your_username"
 $env:DB_PASSWORD="your_password"
 ```
@@ -83,7 +92,7 @@ $env:DB_PASSWORD="your_password"
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=Asia/Shanghai
     username: your_username
     password: your_password
 ```
@@ -92,7 +101,7 @@ spring:
 
 ```bash
 java -jar target/job-lineage-web-1.0.0.jar \
-  --spring.datasource.url=jdbc:mysql://localhost:3306/psx \
+  --spring.datasource.url=jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=Asia/Shanghai \
   --spring.datasource.username=your_username \
   --spring.datasource.password=your_password
 ```
@@ -109,10 +118,10 @@ java -jar target/job-lineage-web-1.0.0.jar \
 
 ### 1. 准备数据库
 
-确保MySQL服务已启动，并创建数据库：
+确保 MySQL 服务已启动，并创建数据库：
 
 ```sql
-CREATE DATABASE IF NOT EXISTS psx;
+CREATE DATABASE IF NOT EXISTS your_database;
 ```
 
 ### 2. 配置数据库连接
@@ -121,12 +130,12 @@ CREATE DATABASE IF NOT EXISTS psx;
 
 ```bash
 # Linux/Mac
-export DB_URL=jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai
+export DB_URL=jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=Asia/Shanghai
 export DB_USERNAME=your_username
 export DB_PASSWORD=your_password
 
 # Windows (PowerShell)
-$env:DB_URL="jdbc:mysql://localhost:3306/psx?useSSL=false&serverTimezone=Asia/Shanghai"
+$env:DB_URL="jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=Asia/Shanghai"
 $env:DB_USERNAME="your_username"
 $env:DB_PASSWORD="your_password"
 ```
@@ -136,7 +145,7 @@ $env:DB_PASSWORD="your_password"
 向 `job_lineage` 表中插入作业血缘关系数据：
 
 ```sql
-USE psx;
+USE your_database;
 
 INSERT INTO job_lineage (job_group, job_name, dep_group, dep_name, is_valid) VALUES
 ('GROUP_A', 'JOB_1', 'GROUP_B', 'JOB_2', '有效'),
@@ -153,11 +162,11 @@ mvn clean package
 # 运行项目
 java -jar target/job-lineage-web-1.0.0.jar
 
-# 或使用Maven直接运行
+# 或使用 Maven 直接运行
 mvn spring-boot:run
 ```
 
-**注意**：首次启动时，如果没有配置环境变量，系统会使用默认配置（username: root, password: root）。生产环境请务必通过环境变量配置数据库密码！
+**注意**：首次启动时，如果没有配置环境变量，系统会使用默认配置。生产环境请务必通过环境变量配置数据库密码！
 
 ### 5. 访问系统
 
@@ -173,12 +182,34 @@ mvn spring-boot:run
 
 ### 查询作业血缘关系
 
-1. 在"作业名称"框中输入作业名称（如：DCM_ISP）
-2. 设置查询层级（默认4层）
+1. 在"作业名称"框中输入作业名称（如：`GROUP_A_JOB_1`）
+2. 设置查询层级（默认 4 层）
 3. 点击"查询血缘关系"按钮
 4. 查看上游依赖和下游影响结果
+5. 点击"导出 Excel"按钮可将结果导出为 Excel 文件
 
-## API接口
+### 按目标应用过滤查询
+
+1. 在"起始作业名"框中输入起始作业（如：`A_X`）
+2. 在"目标应用名"框中输入目标应用（如：`C`，即作业组名中 `_` 前的部分）
+3. 设置最大层级（默认 10 层）
+4. 点击"查询目标应用链路"按钮
+5. 系统展示所有最终能到达目标应用的完整链路
+6. 点击"导出 Excel"按钮可将结果导出为 Excel 文件
+
+**过滤规则**：
+- 路径中间节点可以是任意应用
+- 末端（最深层级）作业组的应用名必须等于目标应用名
+- 不到达目标应用的分支一律过滤
+
+### 搜索作业
+
+1. 在"作业名称"框中输入关键词
+2. 选择搜索模式（模糊搜索/精准搜索）
+3. 点击"搜索作业"按钮或按回车键
+4. 从搜索结果中点击选择作业
+
+## API 接口
 
 ### 刷新数据库数据
 
@@ -190,9 +221,43 @@ POST /api/refresh
 ### 查询作业血缘关系
 
 ```
-GET /api/query
-参数: jobName (String), maxLevel (int)
+GET /api/query?jobName={jobName}&maxLevel={maxLevel}
 返回: {"success": true, "data": {...}}
+```
+
+### 按目标应用过滤查询
+
+```
+GET /api/query-by-target-app?jobName={jobName}&targetApp={targetApp}&maxLevel={maxLevel}
+返回: {"success": true, "startJob": "...", "targetApp": "...", "pathCount": N, "paths": [[...], ...]}
+```
+
+### 搜索作业
+
+```
+GET /api/search?keyword={keyword}&mode={fuzzy|exact}
+返回: {"success": true, "jobs": [...]}
+```
+
+### 获取所有作业列表
+
+```
+GET /api/all-jobs
+返回: {"success": true, "jobs": [...]}
+```
+
+### 导出血缘关系 Excel
+
+```
+GET /api/export/lineage?jobName={jobName}&maxLevel={maxLevel}
+返回: Excel 文件下载
+```
+
+### 导出目标应用过滤 Excel
+
+```
+GET /api/export/target-app?jobName={jobName}&targetApp={targetApp}&maxLevel={maxLevel}
+返回: Excel 文件下载
 ```
 
 ### 获取数据统计
@@ -212,8 +277,9 @@ GET /api/health
 ## 性能优化
 
 - 使用索引加速查询（下游索引和上游索引）
-- 使用BFS算法进行层级查询
-- 使用并发安全的Map存储索引数据
+- 使用 BFS 算法进行层级查询
+- 使用 DFS 算法进行目标应用路径过滤
+- 使用并发安全的 Map 存储索引数据
 - 数据库字段建立索引加速查询
 - 应用启动时自动加载数据
 
@@ -223,9 +289,10 @@ GET /api/health
 src/main/java/com/example/joblineage/
 ├── JobLineageApplication.java          # 主应用入口
 ├── controller/
-│   └── JobLineageController.java       # REST API控制器
+│   └── JobLineageController.java       # REST API 控制器
 ├── service/
-│   └── JobLineageService.java          # 业务逻辑服务
+│   ├── JobLineageService.java          # 业务逻辑服务
+│   └── DataGenerator.java              # 测试数据生成器
 ├── repository/
 │   └── JobLineageRepository.java       # 数据访问层
 ├── entity/
@@ -233,17 +300,22 @@ src/main/java/com/example/joblineage/
 └── model/
     ├── JobNode.java                    # 作业节点模型
     └── QueryResult.java                # 查询结果模型
+
+src/main/resources/
+├── application.yml                     # 应用配置
+├── static/
+│   └── index.html                      # 前端页面
+└── templates/                          # 模板文件
 ```
 
 ## 扩展建议
 
-1. 添加数据导入功能（从Excel导入到数据库）
+1. 添加数据导入功能（从 Excel 导入到数据库）
 2. 添加用户认证和权限管理
 3. 添加查询历史记录
-4. 添加可视化图表展示（如D3.js）
-5. 添加导出功能（导出查询结果为Excel）
-6. 添加数据版本管理
-7. 添加定时自动刷新数据功能
+4. 添加可视化图表展示（如 D3.js）
+5. 添加数据版本管理
+6. 添加定时自动刷新数据功能
 
 ## 许可证
 
