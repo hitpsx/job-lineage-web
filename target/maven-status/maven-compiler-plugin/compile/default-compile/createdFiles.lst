@@ -1,8 +1,0 @@
-com\example\joblineage\repository\JobLineageRepository.class
-com\example\joblineage\service\JobLineageService.class
-com\example\joblineage\model\JobData.class
-com\example\joblineage\model\JobNode.class
-com\example\joblineage\controller\JobLineageController.class
-com\example\joblineage\entity\JobLineage.class
-com\example\joblineage\JobLineageApplication.class
-com\example\joblineage\model\QueryResult.class

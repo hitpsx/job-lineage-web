@@ -624,6 +624,31 @@
                     </button>
                 </div>
 
+                <!-- 按目标应用过滤查询 -->
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #dadce0;">
+                    <div style="font-size: 13px; color: #5f6368; font-weight: 500; margin-bottom: 12px;">
+                        <span style="background: #fce8e8; color: #d93025; padding: 2px 8px; border-radius: 4px; margin-right: 6px;">新功能</span>
+                        按目标应用过滤（只显示最终能到达目标应用的链路）
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startJobFilter">起始作业名</label>
+                            <input type="text" id="startJobFilter" placeholder="请输入起始作业名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="targetAppFilter">目标应用名</label>
+                            <input type="text" id="targetAppFilter" placeholder="如：C（作业组名中_前的部分）">
+                        </div>
+                        <div class="form-group small">
+                            <label for="maxLevelFilter">最大层级</label>
+                            <input type="number" id="maxLevelFilter" value="10" min="1" max="20">
+                        </div>
+                        <button onclick="queryByTargetApp()" id="queryTargetAppBtn" class="btn btn-primary" disabled>
+                            查询目标应用链路
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 搜索结果 -->
                 <div id="searchResults" class="search-results"></div>
             </div>
@@ -656,7 +681,12 @@
         <div class="card hidden" id="resultsSection">
             <div class="results-header">
                 <h2>依赖链路图</h2>
-                <span class="job-badge" id="currentJob"></span>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <span class="job-badge" id="currentJob"></span>
+                    <button onclick="exportLineageExcel()" class="btn btn-primary" style="padding: 6px 16px; font-size: 13px; background: #34a853;">
+                        📊 导出Excel
+                    </button>
+                </div>
             </div>
 
             <!-- 根节点 -->
@@ -702,6 +732,39 @@
                 </div>
                 <div class="legend-item" style="margin-left: auto;">
                     <span style="color: #9aa0a6;">💡 点击节点可展开查看下一级依赖</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 目标应用过滤查询结果 -->
+        <div class="card hidden" id="targetAppResultsSection">
+            <div class="results-header">
+                <h2>目标应用过滤链路</h2>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <span class="job-badge" id="targetAppStartJob"></span>
+                    <span style="color: #5f6368; font-size: 14px;">→</span>
+                    <span class="job-badge" id="targetAppName" style="background: #fce8e8; color: #d93025;"></span>
+                    <button onclick="exportTargetAppExcel()" class="btn btn-primary" style="padding: 6px 16px; font-size: 13px; background: #34a853;">
+                        📊 导出Excel
+                    </button>
+                </div>
+            </div>
+
+            <div id="targetAppPathCount" style="margin-bottom: 16px; color: #5f6368; font-size: 14px;"></div>
+
+            <div id="targetAppPathsList" class="node-list"></div>
+
+            <div class="legend" style="margin-top: 20px;">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1a73e8;"></div>
+                    <span>起始作业</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d93025;"></div>
+                    <span>目标应用作业组（末端）</span>
+                </div>
+                <div class="legend-item" style="margin-left: auto;">
+                    <span style="color: #9aa0a6;">只显示最终能到达目标应用的完整链路</span>
                 </div>
             </div>
         </div>
@@ -1013,6 +1076,156 @@
             return div.innerHTML;
         }
 
+        // 按目标应用过滤查询
+        async function queryByTargetApp() {
+            const startJob = document.getElementById('startJobFilter').value.trim();
+            const targetApp = document.getElementById('targetAppFilter').value.trim();
+            const maxLevel = document.getElementById('maxLevelFilter').value;
+
+            if (!startJob) {
+                showStatus('queryStatus', '✗ 请输入起始作业名称', 'error');
+                return;
+            }
+            if (!targetApp) {
+                showStatus('queryStatus', '✗ 请输入目标应用名', 'error');
+                return;
+            }
+
+            const queryBtn = document.getElementById('queryTargetAppBtn');
+            queryBtn.innerHTML = '<span class="spinner"></span> 查询中...';
+            queryBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/query-by-target-app?jobName=${encodeURIComponent(startJob)}&targetApp=${encodeURIComponent(targetApp)}&maxLevel=${maxLevel}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus('queryStatus', `✓ 查询成功，找到 ${result.pathCount} 条到达 ${targetApp} 的链路`, 'success');
+                    showTargetAppResults(result);
+                } else {
+                    showStatus('queryStatus', '✗ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showStatus('queryStatus', '✗ 查询失败: ' + error.message, 'error');
+            } finally {
+                queryBtn.innerHTML = '查询目标应用链路';
+                queryBtn.disabled = false;
+            }
+        }
+
+        // 显示目标应用过滤查询结果（嵌套抽屉式多级链路展示）
+        function showTargetAppResults(data) {
+            if (!data) return;
+
+            document.getElementById('targetAppResultsSection').classList.remove('hidden');
+            document.getElementById('targetAppStartJob').textContent = data.startJob;
+            document.getElementById('targetAppName').textContent = data.targetApp;
+            document.getElementById('targetAppPathCount').textContent =
+                `共找到 ${data.pathCount} 条链路，末端均为应用「${data.targetApp}」所属作业组`;
+
+            const container = document.getElementById('targetAppPathsList');
+            const paths = data.paths || [];
+
+            if (paths.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>未找到到达目标应用的链路</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // 构建树：每个节点记录其直接下游子节点
+            const root = buildTargetAppTree(paths);
+            container.innerHTML = renderTargetAppNode(root, 0, data.targetApp, paths[0].length - 1);
+        }
+
+        // 构建目标应用过滤的树结构
+        function buildTargetAppTree(paths) {
+            // 使用 Trie 思想：每个节点是作业名，子节点是所有路径中紧随其后的作业
+            const rootJob = paths[0][0];
+            const root = { job: rootJob, appName: extractAppName(rootJob), children: new Map(), pathCount: paths.length };
+
+            paths.forEach(path => {
+                let current = root;
+                for (let i = 1; i < path.length; i++) {
+                    const job = path[i];
+                    if (!current.children.has(job)) {
+                        current.children.set(job, { job: job, appName: extractAppName(job), children: new Map(), pathCount: 0 });
+                    }
+                    current = current.children.get(job);
+                    current.pathCount++;
+                }
+            });
+
+            return root;
+        }
+
+        // 渲染目标应用过滤树节点（递归抽屉）
+        function renderTargetAppNode(node, level, targetApp, maxLevel) {
+            const isStart = level === 0;
+            const isTargetApp = node.appName === targetApp;
+            const isLeaf = node.children.size === 0;
+            const levelColor = getLevelColor(level, maxLevel);
+
+            let badgeStyle = '';
+            let badgeText = '';
+            if (isStart) {
+                badgeStyle = 'background: #e8f0fe; color: #1a73e8;';
+                badgeText = '起点';
+            } else if (isTargetApp) {
+                badgeStyle = 'background: #fce8e8; color: #d93025;';
+                badgeText = '目标';
+            } else {
+                badgeStyle = 'background: #f1f3f4; color: #5f6368;';
+                badgeText = node.appName;
+            }
+
+            const levelLabel = level === 0 ? '起点' : `第 ${level} 级`;
+
+            // 如果有子节点，渲染嵌套抽屉内容
+            let childrenHtml = '';
+            if (!isLeaf) {
+                const childEntries = Array.from(node.children.values());
+                childrenHtml = `
+                    <div class="drawer-content">
+                        <div class="child-node" style="margin-left: 16px; border-left: 2px solid #e8eaed; padding-left: 8px;">
+                            ${childEntries.map(child => renderTargetAppNode(child, level + 1, targetApp, maxLevel)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="drawer-item" style="margin-bottom: 4px;">
+                    <div class="drawer-header" style="border-left: 4px solid ${levelColor}; ${isTargetApp ? 'background: #fff8f8;' : ''}" onclick="toggleDrawer(this)">
+                        <span class="drawer-toggle ${isLeaf ? 'empty' : ''}">${isLeaf ? '' : '▶'}</span>
+                        <span class="node-level" style="background: ${levelColor}20; color: ${levelColor};">${levelLabel}</span>
+                        <span style="font-size: 11px; ${badgeStyle} padding: 2px 8px; border-radius: 4px; white-space: nowrap; margin-right: 8px;">${badgeText}</span>
+                        <span class="node-name">${escapeHtml(node.job)}</span>
+                        <span style="font-size: 11px; color: #9aa0a6; background: #f1f3f4; padding: 2px 8px; border-radius: 10px;">${node.pathCount} 条路径</span>
+                    </div>
+                    ${childrenHtml}
+                </div>
+            `;
+        }
+
+        // 根据层级获取颜色
+        function getLevelColor(level, maxLevel) {
+            if (level === 0) return '#1a73e8';
+            if (level === maxLevel) return '#d93025';
+            const colors = ['#fbbc04', '#34a853', '#4285f4', '#9334e6', '#ff6d01'];
+            return colors[(level - 1) % colors.length];
+        }
+
+        // 从作业全名提取应用名
+        function extractAppName(jobName) {
+            if (!jobName) return '';
+            const idx = jobName.indexOf('_');
+            return idx > 0 ? jobName.substring(0, idx) : jobName;
+        }
+
         // 页面加载时检查状态
         window.onload = async function() {
             try {
@@ -1021,6 +1234,7 @@
 
                 if (result.dataLoaded) {
                     document.getElementById('queryBtn').disabled = false;
+                    document.getElementById('queryTargetAppBtn').disabled = false;
 
                     const statsResponse = await fetch(`${API_BASE}/stats`);
                     const statsResult = await statsResponse.json();
@@ -1049,6 +1263,18 @@
             }
         });
 
+        // 目标应用过滤输入框回车查询
+        document.getElementById('startJobFilter').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('targetAppFilter').focus();
+            }
+        });
+        document.getElementById('targetAppFilter').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                queryByTargetApp();
+            }
+        });
+
         // 输入时防抖搜索
         let searchTimeout;
         document.getElementById('jobName').addEventListener('input', function(e) {
@@ -1061,6 +1287,59 @@
                 }
             }, 300);
         });
+
+        // 导出血缘关系 Excel
+        async function exportLineageExcel() {
+            const jobName = document.getElementById('currentJob').textContent.trim();
+            const maxLevel = document.getElementById('maxLevel').value;
+            if (!jobName) {
+                showStatus('queryStatus', '✗ 请先查询血缘关系', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/export/lineage?jobName=${encodeURIComponent(jobName)}&maxLevel=${maxLevel}`);
+                if (!response.ok) throw new Error('导出失败');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `血缘关系_${jobName}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showStatus('queryStatus', '✓ Excel 导出成功', 'success');
+            } catch (error) {
+                showStatus('queryStatus', '✗ 导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 导出目标应用过滤 Excel
+        async function exportTargetAppExcel() {
+            const startJob = document.getElementById('targetAppStartJob').textContent.trim();
+            const targetApp = document.getElementById('targetAppName').textContent.trim();
+            const maxLevel = document.getElementById('maxLevelFilter').value;
+            if (!startJob || !targetApp) {
+                showStatus('queryStatus', '✗ 请先查询目标应用过滤结果', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/export/target-app?jobName=${encodeURIComponent(startJob)}&targetApp=${encodeURIComponent(targetApp)}&maxLevel=${maxLevel}`);
+                if (!response.ok) throw new Error('导出失败');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `目标应用过滤_${startJob}_到_${targetApp}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showStatus('queryStatus', '✓ Excel 导出成功', 'success');
+            } catch (error) {
+                showStatus('queryStatus', '✗ 导出失败: ' + error.message, 'error');
+            }
+        }
     </script>
 </body>
 </html>
