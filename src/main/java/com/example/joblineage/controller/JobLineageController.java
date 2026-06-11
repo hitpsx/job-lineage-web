@@ -225,7 +225,7 @@ public class JobLineageController {
             QueryResult result = jobLineageService.query(jobName, maxLevel);
             byte[] excelBytes = jobLineageService.exportLineageToExcel(result);
 
-            String filename = URLEncoder.encode("血缘关系_" + jobName + ".xlsx", StandardCharsets.UTF_8)
+            String filename = URLEncoder.encode("血缘关系_" + jobName + ".xlsx", "UTF-8")
                     .replaceAll("\\+", "%20");
 
             return ResponseEntity.ok()
@@ -255,7 +255,7 @@ public class JobLineageController {
             List<List<String>> paths = jobLineageService.queryDownstreamByTargetApp(jobName, targetApp, maxLevel);
             byte[] excelBytes = jobLineageService.exportTargetAppToExcel(jobName, targetApp, paths);
 
-            String filename = URLEncoder.encode("目标应用过滤_" + jobName + "_到_" + targetApp + ".xlsx", StandardCharsets.UTF_8)
+            String filename = URLEncoder.encode("目标应用过滤_" + jobName + "_到_" + targetApp + ".xlsx", "UTF-8")
                     .replaceAll("\\+", "%20");
 
             return ResponseEntity.ok()
